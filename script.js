@@ -6,7 +6,16 @@ date.textContent = time();
 // add eventListeners
 playBtn.addEventListener("click", play);
 guessBtn.addEventListener("click", makeGuess);
+btnEnter.addEventListener("click", function (){ //() => {}
+    myFunc(myInput.value)
+});
 
+function myFunc(myName){
+    if(myName == ""){
+        myPara.textContent = "INVALID NAME";
+        return;
+    }
+}
 function play(){
     score = 0; // sets score to 0 every new game
     playBtn.disabled = true;
@@ -64,11 +73,26 @@ function updateScore(){
         }
     }
     let avg = sum/scoreArr.length;
-    avgScore.textContent = "Average Score: " + avg.toFixed(2);
+    avgScore.textContent = myInput.value + "'s Average Score: " + avg.toFixed(2);
 }
+function getDateSuffix(day) {
+        if (day > 3 && day < 21) return 'th'; // Handles 11th, 12th, 13th
+        switch (day % 10) {
+            case 1: return 'st';
+            case 2: return 'nd';
+            case 3: return 'rd';
+            default: return 'th';
+        }
+    }
 function time(){
     let d = new Date();
-    //  concatenate a string with all the date info...
-    d = d.getFullYear() + " " + d.getTime();
+    const day = d.getDate();
+    const month = d.toLocaleString('default', {month: 'long'});
+    const suffix = getDateSuffix(day);
+    const hours = d.getHours();       
+    // Returns the hour (0-23)
+    const minutes = d.getMinutes();   
+    // Returns the minute (0-59)
+    d = month + " " + day + suffix + ", " + d.getFullYear() + " - " + hours + ":" + minutes;
     return d;
 }
