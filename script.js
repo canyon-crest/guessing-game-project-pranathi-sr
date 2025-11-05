@@ -1,8 +1,20 @@
+const myInput = document.getElementById("myInput");
+const btnEnter = document.getElementById("btnEnter");
+const guessBtn = document.getElementById("guessBtn");
+const giveUp = document.getElementById("giveUp");
+const playBtn = document.getElementById("playBtn");
+const guess = document.getElementById("guess");
+const myPara = document.getElementById("msg");
 // global variables
 let level, answer, score;
 const levelArr = document.getElementsByName("level");
 const scoreArr = [];
-date.textContent = time();
+const dateElement = document.getElementById("date");
+dateElement.textContent = time();
+for(let i = 0; i < levelArr.length; i++){
+    levelArr[i].disabled = true;
+}
+playBtn.disabled = true;
 // add eventListeners
 playBtn.addEventListener("click", play);
 guessBtn.addEventListener("click", makeGuess);
@@ -11,10 +23,17 @@ btnEnter.addEventListener("click", function (){ //() => {}
 });
 
 function myFunc(myName){
-    if(myName == ""){
+    if(myName.trim() == ""){
         myPara.textContent = "INVALID NAME";
         return;
     }
+    myInput.disabled = true;
+    btnEnter.disabled = true;
+    for(let i = 0; i < levelArr.length; i++){
+        levelArr[i].disabled = false;
+    }
+    playBtn.disabled = false;
+    myPara.textContent = "Hello, " + myName.trim() + "! Choose a Level to start:";
 }
 function play(){
     score = 0; // sets score to 0 every new game
@@ -90,9 +109,8 @@ function time(){
     const month = d.toLocaleString('default', {month: 'long'});
     const suffix = getDateSuffix(day);
     const hours = d.getHours();       
-    // Returns the hour (0-23)
-    const minutes = d.getMinutes();   
-    // Returns the minute (0-59)
-    d = month + " " + day + suffix + ", " + d.getFullYear() + " - " + hours + ":" + minutes;
+    const minutes = d.getMinutes();
+    const paddedMinutes = String(minutes).padStart(2, '0');   
+    d = month + " " + day + suffix + ", " + d.getFullYear() + " - " + hours + ":" + paddedMinutes;
     return d;
 }
