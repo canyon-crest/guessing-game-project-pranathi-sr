@@ -6,10 +6,13 @@ const playBtn = document.getElementById("playBtn");
 const guess = document.getElementById("guess");
 const dateElement = document.getElementById("date");
 const msg = document.getElementById("msg");
+const fastestTimeElement = document.getElementById("fastestTime");
 // global variables
 let level, answer, score;
 const levelArr = document.getElementsByName("level");
 const scoreArr = [];
+let gameStartTime;
+let fastestTime = Infinity;
 dateElement.textContent = time();
 for(let i = 0; i < levelArr.length; i++){
     levelArr[i].disabled = true;
@@ -43,13 +46,14 @@ function play(){
     guessBtn.disabled = false; 
     guess.disabled = false; 
     giveUp.disabled = false;
+    gameStartTime = Date.now();
     for(let i = 0; i < levelArr.length; i++){
         if(levelArr[i].checked){
             level = levelArr[i].value;
         }
         levelArr[i].disabled = true;
     }
-    msg.textContent = "Guess a number from 1 - " + level;
+    msg.textContent = "Guess a number from 1 - " + level; 
     answer = Math.floor(Math.random()*level)+1;
     guess.placeholder = answer;
 }
@@ -99,6 +103,25 @@ function reset(){
     }
 }
 function updateScore(){
+    if (gameStartTime) {
+        const endTime = Date.now();
+        const elapsedTimeMs = endTime - gameStartTime;
+        if (score !== (parseInt(level) + 1)) {
+            const elapsedTimeSeconds = (elapsedTimeMs / 1000).toFixed(2);
+            if (elapsedTimeMs < fastestTime) {
+                fastestTime = elapsedTimeMs;
+                fastestTimeElement.textContent = "Fastest Time: " + elapsedTimeSeconds + " seconds! (New Record!)";
+            } 
+            else {
+                fastestTimeElement.textContent = "Fastest Time: " +(fastestTime / 1000).toFixed(2) + " seconds";
+            }
+            msg.textContent += " (Time taken: " + elapsedTimeSeconds + " seconds)";
+        } 
+        else {
+             fastestTimeElement.textContent = "Fastest Time: " (fastestTime === Infinity ? 'N/A' : (fastestTime / 1000).toFixed(2) + " seconds");
+        }
+        gameStartTime = null; 
+    }
     scoreArr.push(score);
     scoreArr.sort((a,b)=>a-b);
     const levelMax = parseInt(level);
