@@ -95,6 +95,21 @@ function makeGuess(){
     }
     else{
         msg.textContent = "You got it, it took you " + score + " tries! Press play to play again.";
+        // celebration: run confetti if available (safe to call)
+        try {
+            if (typeof confettiJS === 'function') {
+                // position source a bit below the top so pieces are visible
+                confettiJS({ x: window.innerWidth / 2, y: window.innerHeight / 3 });
+            }
+        } catch (e) { /* ignore errors */ }
+        // subtle page shake for impact, but respect prefers-reduced-motion
+        try {
+            if (!window.matchMedia || !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                if (typeof shake === 'function') {
+                    shake(450, 8);
+                }
+            }
+        } catch (e) { /* ignore */ }
         updateScore();
         reset();
     }
@@ -214,8 +229,76 @@ function time(){
 function withGiveUp(){
     score = Number(level) + 1; 
     msg.textContent = "You gave up, so ha - you lose! The number was " + answer + ". Your score was recorded as " + score + " (max tries). Press play to play again.";
+    // reveal the answer visually and to screen readers
+    try {
+        if (typeof revealAnswerAnimation === 'function') {
+            revealAnswerAnimation(answer);
+        }
+        // also make a short aria-live announcement if available
+        if (!document.getElementById('gg_aria_live')) {
+            const lr = document.createElement('div');
+            lr.id = 'gg_aria_live';
+            lr.setAttribute('aria-live','polite');
+            lr.style.position = 'absolute'; lr.style.left = '-9999px';
+            document.body.appendChild(lr);
+        }
+        document.getElementById('gg_aria_live').textContent = 'The number was ' + answer + '.';
+    } catch (e) { /* ignore */ }
+    // record this abandon in stats
+    try { recordAbandon(); } catch(e) { /* ignore */ }
     updateScore();
     reset();
+}
+
+// Reveal animation helper: shows a transient badge announcing the answer
+function revealAnswerAnimation(answer) {
+  try {
+    const badge = document.createElement('div');
+    badge.textContent = 'Answer: ' + answer;
+    badge.style.position = 'fixed';
+    badge.style.left = '50%';
+    badge.style.top = '18%';
+    badge.style.transform = 'translateX(-50%) scale(0.9)';
+    badge.style.background = 'rgba(255,255,255,0.98)';
+    badge.style.padding = '12px 18px';
+    badge.style.borderRadius = '10px';
+    badge.style.boxShadow = '0 8px 20px rgba(0,0,0,0.15)';
+    badge.style.zIndex = 12000;
+    badge.style.fontFamily = 'system-ui, Arial, sans-serif';
+    badge.style.fontWeight = '700';
+    badge.style.transition = 'transform 360ms cubic-bezier(.2,.8,.2,1), opacity 360ms';
+    document.body.appendChild(badge);
+    requestAnimationFrame(() => { badge.style.transform = 'translateX(-50%) scale(1)'; badge.style.opacity = '1'; });
+    setTimeout(() => { badge.style.transform = 'translateX(-50%) scale(1.06)'; }, 380);
+    setTimeout(() => { badge.style.opacity = '0'; badge.style.transform = 'translateX(-50%) scale(0.9)'; }, 1600);
+    setTimeout(()=> { try { badge.remove(); } catch(e){} }, 2000);
+  } catch (e) { /* ignore errors */ }
+}
+function consolationToast(msgText) {
+    try {
+        if (!document.getElementById('gg_toast_container')) {
+            const c = document.createElement('div');
+            c.id = 'gg_toast_container';
+            c.style.position = 'fixed';
+            c.style.left = '50%';
+            c.style.bottom = '14%';
+            c.style.transform = 'translateX(-50%)';
+            c.style.zIndex = 12000;
+            document.body.appendChild(c);
+        }
+        const el = document.createElement('div');
+        el.textContent = '💪 ' + msgText;
+        el.style.background = 'rgba(0,0,0,0.85)';
+        el.style.color = '#fff';
+        el.style.padding = '10px 14px';
+        el.style.borderRadius = '999px';
+        el.style.fontFamily = 'system-ui,Arial';
+        el.style.boxShadow = '0 8px 20px rgba(0,0,0,0.2)';
+        el.style.opacity = '0'; el.style.transition = 'opacity 220ms, transform 220ms';
+        document.getElementById('gg_toast_container').appendChild(el);
+        requestAnimationFrame(()=>{ el.style.opacity='1'; el.style.transform='translateY(-6px)'; });
+        setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateY(0)'; setTimeout(()=>el.remove(),240); }, 2800);
+    } catch (e) { /* ignore */ }
 }
 function currentClock() {
     dateElement.textContent = time();
@@ -226,6 +309,96 @@ function updateStopwatch() {
     if (gameStartTime) {
         const elapsed = Date.now() - gameStartTime;
         const seconds = (elapsed / 1000).toFixed(2);
-        currentTimerElement.textContent = "Time:" + seconds + "s";
+        currentTimerElement.textContent = "Time: " + seconds + "s";
     }
+}
+// Confetti (append-only)
+function confettiJS({x=window.innerWidth/2,y=window.innerHeight/2, count=60} = {}) {
+  const canv = document.createElement('canvas');
+  canv.width = innerWidth; canv.height = innerHeight;
+  canv.style.position = 'fixed';
+  canv.style.left = '0'; canv.style.top = '0';
+  canv.style.pointerEvents = 'none';
+  canv.style.zIndex = '9999';
+  document.body.appendChild(canv);
+  const ctx = canv.getContext('2d');
+  const pieces = Array.from({length:count}, () => ({
+    x, y,
+    vx:(Math.random()-0.5)*8,
+    vy:(Math.random()*-7)-2,
+    r: Math.random()*8+4,
+    c: ['#ffc107','#ff3b30','#34c759','#007aff'][Math.floor(Math.random()*4)]
+  }));
+  let t = 0;
+  (function draw(){
+    ctx.clearRect(0,0,canv.width,canv.height);
+    for(const p of pieces){
+      p.x += p.vx; p.y += p.vy; p.vy += 0.35;
+      ctx.fillStyle = p.c;
+      ctx.fillRect(p.x, p.y, p.r, p.r*1.4);
+    }
+    t++;
+    if(t < 140) requestAnimationFrame(draw);
+    else canv.remove();
+  })();
+}
+function shake(duration = 400, magnitude = 6) {
+  const el = document.documentElement;
+  const start = Date.now();
+  const orig = el.style.transform || '';
+  (function frame(){
+    const now = Date.now(); const elapsed = now - start;
+    if (elapsed < duration) {
+      const x = (Math.random() - 0.5) * magnitude;
+      const y = (Math.random() - 0.5) * magnitude;
+      el.style.transform = `translate(${x}px, ${y}px)`;
+      requestAnimationFrame(frame);
+    } else {
+      el.style.transform = orig;
+    }
+  })();
+}
+function revealAnswerAnimation(answer) {
+  // create a transient badge near the top or near input
+  const badge = document.createElement('div');
+  badge.textContent = 'Answer: ' + answer;
+  badge.style.position = 'fixed';
+  badge.style.left = '50%';
+  badge.style.top = '18%';
+  badge.style.transform = 'translateX(-50%) scale(0.8)';
+  badge.style.background = 'rgba(255,255,255,0.95)';
+  badge.style.padding = '12px 18px';
+  badge.style.borderRadius = '10px';
+  badge.style.boxShadow = '0 8px 20px rgba(0,0,0,0.15)';
+  badge.style.zIndex = 12000;
+  badge.style.fontFamily = 'system-ui, Arial, sans-serif';
+  badge.style.fontWeight = '700';
+  badge.style.transition = 'transform 360ms cubic-bezier(.2,.8,.2,1), opacity 360ms';
+  document.body.appendChild(badge);
+  // announce for screen readers
+  if (!document.getElementById('gg_aria_live')) {
+    const lr = document.createElement('div');
+    lr.id = 'gg_aria_live';
+    lr.setAttribute('aria-live','polite');
+    lr.style.position = 'absolute';
+    lr.style.left = '-9999px';
+    document.body.appendChild(lr);
+  }
+  document.getElementById('gg_aria_live').textContent = 'The number was ' + answer;
+  // animate in, pulse, then remove
+  requestAnimationFrame(() => { badge.style.transform = 'translateX(-50%) scale(1)'; });
+  setTimeout(() => { badge.style.transform = 'translateX(-50%) scale(1.06)'; }, 380);
+  setTimeout(() => { badge.style.opacity = '0'; badge.style.transform = 'translateX(-50%) scale(0.88)'; }, 1600);
+  setTimeout(()=> badge.remove(), 2000);
+}
+function recordAbandon(){
+  try{
+    const KEY = 'gg_stats_v1';
+    const s = JSON.parse(localStorage.getItem(KEY) || '{}');
+    s.abandons = (s.abandons || 0) + 1;
+    s.total = (s.total || 0) + 1;
+    localStorage.setItem(KEY, JSON.stringify(s));
+    // display small stat somewhere; quick toast:
+    consolationToast('Games abandoned: ' + s.abandons + ' (you can retry!)');
+  }catch(e){}
 }
