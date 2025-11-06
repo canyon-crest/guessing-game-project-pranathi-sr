@@ -274,32 +274,7 @@ function revealAnswerAnimation(answer) {
     setTimeout(()=> { try { badge.remove(); } catch(e){} }, 2000);
   } catch (e) { /* ignore errors */ }
 }
-function consolationToast(msgText) {
-    try {
-        if (!document.getElementById('gg_toast_container')) {
-            const c = document.createElement('div');
-            c.id = 'gg_toast_container';
-            c.style.position = 'fixed';
-            c.style.left = '50%';
-            c.style.bottom = '14%';
-            c.style.transform = 'translateX(-50%)';
-            c.style.zIndex = 12000;
-            document.body.appendChild(c);
-        }
-        const el = document.createElement('div');
-        el.textContent = '💪 ' + msgText;
-        el.style.background = 'rgba(0,0,0,0.85)';
-        el.style.color = '#fff';
-        el.style.padding = '10px 14px';
-        el.style.borderRadius = '999px';
-        el.style.fontFamily = 'system-ui,Arial';
-        el.style.boxShadow = '0 8px 20px rgba(0,0,0,0.2)';
-        el.style.opacity = '0'; el.style.transition = 'opacity 220ms, transform 220ms';
-        document.getElementById('gg_toast_container').appendChild(el);
-        requestAnimationFrame(()=>{ el.style.opacity='1'; el.style.transform='translateY(-6px)'; });
-        setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateY(0)'; setTimeout(()=>el.remove(),240); }, 2800);
-    } catch (e) { /* ignore */ }
-}
+
 function currentClock() {
     dateElement.textContent = time();
 }
@@ -402,3 +377,100 @@ function recordAbandon(){
     consolationToast('Games abandoned: ' + s.abandons + ' (you can retry!)');
   }catch(e){}
 }
+function consolationToast(msgText) {
+  // create container if missing
+  if (!document.getElementById('gg_toast_container')) {
+    const c = document.createElement('div');
+    c.id = 'gg_toast_container';
+    c.style.position = 'fixed';
+    c.style.left = '50%';
+    c.style.bottom = '14%';
+    c.style.transform = 'translateX(-50%)';
+    c.style.zIndex = 12000;
+    document.body.appendChild(c);
+  }
+  const el = document.createElement('div');
+  el.textContent = '💪 ' + msgText;
+  el.style.background = 'rgba(0,0,0,0.85)';
+  el.style.color = '#fff';
+  el.style.padding = '10px 14px';
+  el.style.borderRadius = '999px';
+  el.style.fontFamily = 'system-ui,Arial';
+  el.style.boxShadow = '0 8px 20px rgba(0,0,0,0.2)';
+  el.style.opacity = '0'; el.style.transition = 'opacity 220ms, transform 220ms';
+  document.getElementById('gg_toast_container').appendChild(el);
+  requestAnimationFrame(()=>{ el.style.opacity='1'; el.style.transform='translateY(-6px)'; });
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateY(0)'; setTimeout(()=>el.remove(),240); }, 2800);
+  // light emoji burst (few elements)
+  for (let i=0;i<8;i++){
+    const e = document.createElement('div');
+    e.textContent = ['✨','🌟','🎈','🙂'][Math.floor(Math.random()*4)];
+    e.style.position='fixed';
+    e.style.left = (window.innerWidth/2 + (Math.random()-0.5)*160) + 'px';
+    e.style.top = (window.innerHeight*0.65 + (Math.random()-0.5)*40) + 'px';
+    e.style.fontSize = (12 + Math.random()*18) + 'px';
+    e.style.zIndex = 12000;
+    e.style.pointerEvents = 'none';
+    e.style.transition = 'transform 1000ms ease-out, opacity 1000ms';
+    document.body.appendChild(e);
+    requestAnimationFrame(()=> {
+      e.style.transform = `translate(${(Math.random()-0.5)*140}px, ${-120 - Math.random()*120}px) rotate(${(Math.random()-0.5)*360}deg)`;
+      e.style.opacity = '0';
+    });
+    setTimeout(()=> e.remove(), 1100);
+  }
+  // gentle vibrate
+  if (navigator.vibrate) navigator.vibrate(100);
+}
+function showLevelPreview(levelValue){
+  const id = 'gg_level_preview';
+  let node = document.getElementById(id);
+  if (node) node.remove();
+  node = document.createElement('div');
+  node.id = id;
+  node.style.position = 'fixed';
+  node.style.right = '12px';
+  node.style.top = '12px';
+  node.style.background = 'rgba(255,255,255,0.98)';
+  node.style.padding = '10px 12px';
+  node.style.borderRadius = '8px';
+  node.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
+  node.style.zIndex = 9999;
+  const ideal = Math.ceil(Math.log2(Number(levelValue)));
+  node.innerHTML = `<strong>Level: ${levelValue}</strong><div>Range: 1 - ${levelValue}</div><div>Ideal guesses: ${ideal}</div>`;
+  document.body.appendChild(node);
+  setTimeout(()=> node && node.remove(), 3000);
+}
+
+// Small label pulse animation when a level is selected
+function animateLevelBadge(radioEl){
+    try{
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const label = document.querySelector(`label[for="${radioEl.id}"]`);
+        if (!label) return;
+        const prevTransition = label.style.transition || '';
+        const prevTransform = label.style.transform || '';
+        label.style.transition = 'transform 220ms cubic-bezier(.2,.8,.2,1)';
+        label.style.transform = 'scale(1.08)';
+        setTimeout(() => {
+            label.style.transform = prevTransform;
+            setTimeout(()=> { label.style.transition = prevTransition; }, 240);
+        }, 240);
+    } catch(e) { /* ignore */ }
+}
+
+// Wire level radio buttons to show a preview and animate the selected label
+function wireLevelSelectHandlers(){
+    try{
+        const radios = document.getElementsByName('level');
+        if (!radios || radios.length === 0) return;
+        const onChange = (ev) => {
+            const r = ev.target;
+            try { animateLevelBadge(r); } catch(e){}
+            try { showLevelPreview(r.value); } catch(e){}
+        };
+        for (const r of radios) r.addEventListener('change', onChange);
+    } catch(e) { /* ignore */ }
+}
+
+document.addEventListener('DOMContentLoaded', wireLevelSelectHandlers);
