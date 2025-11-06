@@ -198,13 +198,17 @@ function time(){
     const day = d.getDate();
     const month = d.toLocaleString('default', {month: 'long'});
     const suffix = getDateSuffix(day);
-    const hours = d.getHours();       
+    const weekday = d.toLocaleString('default', {weekday: 'long'});
+    let hours = d.getHours();       
     const minutes = d.getMinutes();
     const seconds = d.getSeconds();
-    const paddedHours = String(hours).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12; 
+    hours = hours ? hours : 12;
+    const displayHours = hours;    
     const paddedMinutes = String(minutes).padStart(2, '0');
     const paddedSeconds = String(seconds).padStart(2, '0');
-    d = month + " " + day + suffix + ", " + d.getFullYear() + " - " + paddedHours + ":" + paddedMinutes + ":" + paddedSeconds;
+    d = weekday + ", " + month + " " + day + suffix + ", " + d.getFullYear() + " - " + displayHours + ":" + paddedMinutes + ":" + paddedSeconds + " " + ampm;
     return d;
 }
 function withGiveUp(){
