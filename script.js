@@ -470,6 +470,26 @@ function wireLevelSelectHandlers(){
             try { showLevelPreview(r.value); } catch(e){}
         };
         for (const r of radios) r.addEventListener('change', onChange);
+
+        // Fallback: if a site variant doesn't fire change events or uses clickable labels,
+        // attach click handlers to labels so preview still appears on the published site.
+        const labels = document.querySelectorAll('label[for]');
+        labels.forEach(label => {
+            try{
+                if (label.dataset.ggHooked) return;
+                const fid = label.getAttribute('for');
+                const radio = document.getElementById(fid);
+                if (!radio) return;
+                label.addEventListener('click', (ev) => {
+                    // sometimes clicking the label toggles the radio; run preview after a tiny delay
+                    setTimeout(() => {
+                        try { animateLevelBadge(radio); } catch(e){}
+                        try { showLevelPreview(radio.value); } catch(e){}
+                    }, 10);
+                });
+                label.dataset.ggHooked = '1';
+            }catch(e){}
+        });
     } catch(e) { /* ignore */ }
 }
 
